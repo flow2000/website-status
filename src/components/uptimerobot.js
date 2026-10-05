@@ -5,12 +5,16 @@ import { formatDuration, formatNumber, formatRelativeTime } from '../common/help
 import Link from './link';
 
 // 估算下次检测时间（基于当前状态持续时间和监控间隔）
-function getNextCheckText(currentStateDuration, intervalSeconds) {
-  if (!intervalSeconds) return '未知';
+function getNextCheckSeconds(currentStateDuration, intervalSeconds) {
+  if (!intervalSeconds) return null;
   const elapsed = currentStateDuration || 0;
   const sinceLastCheck = elapsed % intervalSeconds;
-  const secondsUntilNext = intervalSeconds - sinceLastCheck;
+  return intervalSeconds - sinceLastCheck;
+}
 
+function getNextCheckText(currentStateDuration, intervalSeconds) {
+  const secondsUntilNext = getNextCheckSeconds(currentStateDuration, intervalSeconds);
+  if (secondsUntilNext === null) return '未知';
   if (secondsUntilNext <= 0) return '即将检测';
   if (secondsUntilNext < 60) return `${secondsUntilNext} 秒后`;
   if (secondsUntilNext < 3600) {
@@ -41,7 +45,9 @@ function UptimeRobot({ apikey, onRefresh, isFirst }) {
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [, setTick] = useState(0); // 用于触发重新渲染（倒计时更新）
-  const timerRef = useRef(null);
+  const [autoRefresh, setAutoRefresh] = useState(true); // 自动刷新开关
+  const tickTimerRef = useRef(null);
+  const autoRefreshTimerRef = useRef(null);
 
   // 刷新数据
   const fetchData = useCallback(async () => {
@@ -65,46 +71,83 @@ function UptimeRobot({ apikey, onRefresh, isFirst }) {
     fetchData();
   }, [fetchData]);
 
-  // 倒计时定时器（每30秒更新一次显示）
+  // 计算最早的下次检测秒数
+  const getMinNextCheckSeconds = useCallback(() => {
+    if (!monitors || monitors.length === 0) return null;
+    let min = Infinity;
+    monitors.forEach((m) => {
+      const secs = getNextCheckSeconds(m.currentStateDuration, m.interval || CheckInterval * 60);
+      if (secs !== null && secs < min) min = secs;
+    });
+    return min === Infinity ? null : min;
+  }, [monitors, CheckInterval]);
+
+  // 每秒更新倒计时 + 自动刷新检测
   useEffect(() => {
-    timerRef.current = setInterval(() => {
+    if (!monitors || !autoRefresh) return;
+
+    let secondsPassed = 0;
+    tickTimerRef.current = setInterval(() => {
+      secondsPassed += 1;
       setTick((t) => t + 1);
-    }, 30000);
+
+      // 计算当前距离下次检测还有多少秒
+      const minNextSeconds = getMinNextCheckSeconds();
+      if (minNextSeconds !== null) {
+        const remaining = minNextSeconds - secondsPassed;
+        // 剩余时间小于等于0时，自动刷新（多等2秒确保API有新数据）
+        if (remaining <= -2) {
+          secondsPassed = 0;
+          fetchData();
+        }
+      }
+    }, 1000);
 
     return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
+      if (tickTimerRef.current) {
+        clearInterval(tickTimerRef.current);
+      }
+    };
+  }, [monitors, autoRefresh, getMinNextCheckSeconds, fetchData]);
+
+  // 清理自动刷新定时器
+  useEffect(() => {
+    return () => {
+      if (autoRefreshTimerRef.current) {
+        clearTimeout(autoRefreshTimerRef.current);
       }
     };
   }, []);
 
   // 计算整体的下次检测时间（取所有监控中最早的）
   const getNextCheckTextGlobal = () => {
-    if (!monitors || monitors.length === 0) return '未知';
-    let minSecondsUntilNext = Infinity;
-
-    monitors.forEach((m) => {
-      const interval = m.interval || CheckInterval * 60;
-      const stateDuration = m.currentStateDuration || 0;
-      const sinceLastCheck = stateDuration % interval;
-      const secondsUntilNext = interval - sinceLastCheck;
-      if (secondsUntilNext < minSecondsUntilNext) {
-        minSecondsUntilNext = secondsUntilNext;
-      }
-    });
-
-    if (minSecondsUntilNext === Infinity) return '未知';
-    if (minSecondsUntilNext <= 0) return '即将检测';
-    if (minSecondsUntilNext < 60) return `${minSecondsUntilNext} 秒后`;
-    if (minSecondsUntilNext < 3600) {
-      const m = Math.floor(minSecondsUntilNext / 60);
-      const s = minSecondsUntilNext % 60;
+    const secs = getMinNextCheckSeconds();
+    if (secs === null) return '未知';
+    if (secs <= 0) return '即将检测';
+    if (secs < 60) return `${secs} 秒后`;
+    if (secs < 3600) {
+      const m = Math.floor(secs / 60);
+      const s = secs % 60;
       return `${m} 分 ${s} 秒后`;
     }
-    const h = Math.floor(minSecondsUntilNext / 3600);
-    const m = Math.floor((minSecondsUntilNext % 3600) / 60);
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
     return `${h} 小时 ${m} 分后`;
   };
+
+  // 计算正常/异常监控数量
+  const getStatusCounts = () => {
+    if (!monitors) return { ok: 0, down: 0, total: 0 };
+    const counts = { ok: 0, down: 0, total: monitors.length };
+    monitors.forEach((m) => {
+      if (m.status === 'ok') counts.ok++;
+      else if (m.status === 'down') counts.down++;
+    });
+    return counts;
+  };
+
+  const statusCounts = getStatusCounts();
+  const allOk = statusCounts.down === 0 && statusCounts.total > 0;
 
   // 错误状态
   if (error) {
@@ -146,26 +189,52 @@ function UptimeRobot({ apikey, onRefresh, isFirst }) {
 
   return (
     <>
-      {/* 状态信息栏 - 只在第一个 API Key 显示 */}
+      {/* 动态状态栏 - 只在第一个 API Key 显示 */}
       {isFirst && (
-        <div className="status-bar">
+        <div className={`status-bar ${allOk ? 'status-all-ok' : 'status-has-down'}`}>
+          {/* 动态脉冲指示器 */}
+          <div className="pulse-indicator">
+            <span className={`pulse-dot ${allOk ? 'pulse-ok' : 'pulse-down'}`}>
+              <span className="pulse-ring"></span>
+              <span className="pulse-ring pulse-delay"></span>
+            </span>
+            <span className="pulse-text">
+              {allOk ? '全部正常' : `${statusCounts.down} 个异常`}
+            </span>
+          </div>
+
           <div className="status-info">
+            <span className="status-item">
+              <span className="status-label">监控总数：</span>
+              <span className="status-value">{statusCounts.total}</span>
+            </span>
             <span className="status-item">
               <span className="status-label">最近更新：</span>
               <span className="status-value">{lastUpdate ? formatRelativeTime(lastUpdate) : '未知'}</span>
             </span>
             <span className="status-item">
-                <span className="status-label">下次检测：</span>
-                <span className="status-value">{getNextCheckTextGlobal()}</span>
-              </span>
+              <span className="status-label">下次检测：</span>
+              <span className="status-value">{getNextCheckTextGlobal()}</span>
+            </span>
           </div>
-          <button className="refresh-btn" onClick={fetchData} disabled={loading} title="刷新数据">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M23 4v6h-6" />
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-            </svg>
-            刷新
-          </button>
+
+          <div className="status-actions">
+            <button
+              className={`auto-refresh-btn ${autoRefresh ? 'active' : ''}`}
+              onClick={() => setAutoRefresh(!autoRefresh)}
+              title={autoRefresh ? '关闭自动刷新' : '开启自动刷新'}
+            >
+              <span className="auto-icon">{autoRefresh ? '🔄' : '⏸️'}</span>
+              <span className="auto-text">{autoRefresh ? '自动' : '手动'}</span>
+            </button>
+            <button className="refresh-btn" onClick={fetchData} disabled={loading} title="刷新数据">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={loading ? 'spin' : ''}>
+                <path d="M23 4v6h-6" />
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+              </svg>
+              刷新
+            </button>
+          </div>
         </div>
       )}
 
