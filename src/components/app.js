@@ -1,24 +1,15 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import Link from './link';
 import Header from './header';
 import UptimeRobot from './uptimerobot';
 import Package from '../../package.json';
 
 function App() {
+  const [apiReady, setApiReady] = useState(null); // null=检查中, true=可用, false=不可用
+
   // 获取配置（环境变量优先）
   const config = useMemo(() => {
     const windowConfig = window.Config || {};
-
-    // API Keys
-    let apiKeys = [];
-    const envKeys = process.env.REACT_APP_UPTIMEROBOT_API_KEYS;
-    if (envKeys) {
-      apiKeys = envKeys.split(',').map((k) => k.trim()).filter(Boolean);
-    }
-    if (apiKeys.length === 0) {
-      if (Array.isArray(windowConfig.ApiKeys)) apiKeys = windowConfig.ApiKeys.filter(Boolean);
-      else if (typeof windowConfig.ApiKeys === 'string' && windowConfig.ApiKeys) apiKeys = [windowConfig.ApiKeys];
-    }
 
     // CountDays
     let countDays = 90;
@@ -45,7 +36,6 @@ function App() {
     }
 
     return {
-      apiKeys,
       countDays,
       checkInterval,
       showLink,
@@ -60,8 +50,46 @@ function App() {
     window.Config.ShowLink = config.showLink;
   }, [config]);
 
-  // 没有配置 API Key
-  if (config.apiKeys.length === 0) {
+  // 检查 API 是否可用
+  useEffect(() => {
+    async function checkApi() {
+      try {
+        const response = await fetch('/api/monitors?days=1');
+        if (response.status === 404) {
+          setApiReady(false);
+          return;
+        }
+        // 只要不是 404，就认为 API 存在（即使返回错误也是配置问题，不是路径问题）
+        setApiReady(true);
+      } catch {
+        setApiReady(false);
+      }
+    }
+    checkApi();
+  }, []);
+
+  // 加载中
+  if (apiReady === null) {
+    return (
+      <>
+        <Header />
+        <div className="container">
+          <div id="uptime">
+            <div className="site">
+              <div className="loading" />
+            </div>
+          </div>
+          <div id="footer">
+            <p>基于 <Link to="https://uptimerobot.com/" text="UptimeRobot" /> 接口制作</p>
+            <p>Version {Package.version}</p>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // API 不可用（本地开发环境或未配置服务端函数）
+  if (apiReady === false) {
     return (
       <>
         <Header />
@@ -69,23 +97,25 @@ function App() {
           <div id="uptime">
             <div className="error-container">
               <div className="error-icon">⚠️</div>
-              <h2>未配置 API Key</h2>
-              <p>请在环境变量或 config.js 中配置您的 UptimeRobot API Key</p>
+              <h2>API 未配置</h2>
+              <p>未检测到服务端 API，请在部署平台配置 UPTIMEROBOT_API_KEYS 环境变量</p>
               <div className="error-details">
-                <p><strong>配置方式：</strong></p>
+                <p><strong>部署方式：</strong></p>
                 <ol>
                   <li>
-                    <strong>环境变量（推荐）：</strong>
-                    设置 <code>REACT_APP_UPTIMEROBOT_API_KEYS</code> 环境变量，
-                    多个 Key 用逗号分隔
+                    <strong>Vercel：</strong>
+                    在 Settings → Environment Variables 添加
+                    <code>UPTIMEROBOT_API_KEYS</code>
                   </li>
                   <li>
-                    <strong>配置文件：</strong>
-                    修改 <code>public/config.js</code> 中的 <code>ApiKeys</code> 数组
+                    <strong>Netlify：</strong>
+                    在 Site settings → Environment variables 添加
+                    <code>UPTIMEROBOT_API_KEYS</code>
                   </li>
                 </ol>
                 <p className="hint">
-                  获取 API Key: <Link to="https://uptimerobot.com/dashboard#mySettings" text="UptimeRobot 设置页面" />
+                  多个 API Key 用逗号分隔。获取 API Key:
+                  <Link to="https://uptimerobot.com/dashboard#mySettings" text="UptimeRobot 设置页面" />
                 </p>
               </div>
             </div>
@@ -104,13 +134,7 @@ function App() {
       <Header />
       <div className="container">
         <div id="uptime">
-          {config.apiKeys.map((key, index) => (
-            <UptimeRobot
-              key={key}
-              apikey={key}
-              isFirst={index === 0}
-            />
-          ))}
+          <UptimeRobot isFirst={true} />
         </div>
         <div id="footer">
           <p>基于 <Link to="https://uptimerobot.com/" text="UptimeRobot" /> 接口制作</p>

@@ -1,26 +1,20 @@
-// 站点配置
-// 注意：API Key 也可以通过环境变量 REACT_APP_UPTIMEROBOT_API_KEYS 配置（逗号分隔多个key）
-// 环境变量优先级高于此配置文件
-
 window.Config = {
 
-    // 显示标题
+    // 站点名称（也可通过环境变量 REACT_APP_SITE_NAME 设置）
     SiteName: '站点监控',
 
-    // UptimeRobot API Keys (V3 API，使用 Read-Only API Key 或 Account API Key)
-    // 支持在 Vercel/Netlify 等平台通过环境变量 REACT_APP_UPTIMEROBOT_API_KEYS 配置
-    // 多个 key 用逗号分隔，例如: key1,key2,key3
-    ApiKeys: [],
-
-    // 日志天数
+    // 可用率统计天数（也可通过环境变量 REACT_APP_COUNT_DAYS 设置）
     CountDays: 90,
 
-    // 是否显示检测站点的链接
-    ShowLink: true,
-
-    // 监控间隔（分钟），用于计算下次检测倒计时
+    // 自动刷新间隔（分钟，也可通过环境变量 REACT_APP_CHECK_INTERVAL 设置）
+    // 注意：这是前端刷新间隔，建议与 UptimeRobot 的监控间隔一致
     CheckInterval: 5,
 
-    // 导航栏菜单
-    Navi: [],
-};
+    // 是否显示跳转链接
+    ShowLink: true,
+
+    // 导航菜单
+    Navi: [
+        // { url: 'https://github.com', text: 'GitHub' },
+    ],
+}

@@ -261,6 +261,15 @@ code {
     .status-value {
       color: #131a26;
       font-weight: 500;
+
+      &.countdown-value {
+        font-family: 'SFMono-Regular', Consolas, monospace;
+        font-weight: 600;
+        color: $primary-color;
+        min-width: 70px;
+        display: inline-block;
+        text-align: center;
+      }
     }
 
     .status-actions {
