@@ -1,4 +1,8 @@
 $primary-color: #3bd672;
+$error-color: #de484a;
+$text-secondary: #9aa2af;
+$border-color: #e6e7e8;
+$bg-light: #f5f7fa;
 
 * {
   margin: 0;
@@ -6,15 +10,24 @@ $primary-color: #3bd672;
 }
 
 body {
-  font-family: sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   font-size: 14px;
-  line-height: 1;
+  line-height: 1.5;
   color: #131a26;
+  background-color: #f0f2f5;
 }
 
 a {
   text-decoration: none;
   color: inherit;
+}
+
+code {
+  background: $bg-light;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
 }
 
 #app {
@@ -61,10 +74,74 @@ a {
   margin-bottom: 40px;
   padding: 15px 0;
   overflow: hidden;
+
+  /* 状态栏 */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 30px;
+    border-bottom: 1px solid $border-color;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+
+    .status-info {
+      display: flex;
+      gap: 24px;
+    }
+
+    .status-item {
+      font-size: 13px;
+    }
+
+    .status-label {
+      color: $text-secondary;
+      margin-right: 6px;
+    }
+
+    .status-value {
+      color: #131a26;
+      font-weight: 500;
+    }
+
+    .refresh-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      background: #fff;
+      color: #374151;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover:not(:disabled) {
+        background: #f9fafb;
+        border-color: $primary-color;
+        color: $primary-color;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      svg {
+        transition: transform 0.3s ease;
+      }
+
+      &:hover:not(:disabled) svg {
+        transform: rotate(180deg);
+      }
+    }
+  }
+
   .site {
-    border-bottom: 1px solid #e6e7e8;
+    border-bottom: 1px solid $border-color;
     margin: 0 30px;
     padding: 25px 0;
+
     .loading {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50'%3E%3Cpath fill='%23D6D8D8' d='M19.52 42.712c9.897 2.916 20.285-2.743 23.201-12.64l-3.902-1.15c-2.281 7.742-10.407 12.17-18.15 9.888l-1.15 3.902z'%3E%3CanimateTransform attributeType='xml' attributeName='transform' type='rotate' from='0 25 25' to='360 25 25' dur='0.6s' repeatCount='indefinite'/%3E%3C/path%3E%3C/svg%3E");
       background-repeat: no-repeat;
@@ -74,11 +151,18 @@ a {
       width: 40px;
       height: 40px;
     }
+
     .meta {
       display: flex;
       align-items: baseline;
+      .name-row {
+        display: flex;
+        align-items: center;
+        flex: 1;
+      }
       .name {
         font-size: 16px;
+        font-weight: 500;
       }
       .link {
         background-image: url("data:image/svg+xml,%3Csvg class='icon' viewBox='0 0 1036 1024' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M600.818 697.6c-70.4 0-134.4-25.6-192-76.8-25.6-25.6-25.6-64-6.4-89.6 25.6-25.6 64-25.6 89.6-6.4 57.6 51.2 147.2 51.2 198.4 0l166.4-166.4c25.6-25.6 38.4-64 38.4-102.4 0-25.6-6.4-64-38.4-96-57.6-51.2-147.2-51.2-198.4 0l-64 76.8c-25.6 25.6-64 25.6-89.6 0-25.6-25.6-25.6-64 0-89.6l70.4-70.4c102.4-102.4 268.8-102.4 377.6 0 51.2 51.2 83.2 115.2 83.2 192 0 70.4-25.6 134.4-76.8 192l-166.4 166.4c-57.6 44.8-121.6 70.4-192 70.4z' fill='%238492A6'/%3E%3Cpath d='M274.418 1024c-70.4 0-134.4-25.6-192-76.8-108.8-96-108.8-262.4-6.4-377.6l166.4-166.4c108.8-102.4 275.2-102.4 377.6 0 25.6 25.6 25.6 64 0 89.6s-64 25.6-89.6 0c-51.2-51.2-140.8-51.2-198.4 0l-166.4 166.4c-44.8 51.2-64 140.8 0 198.4 57.6 51.2 147.2 51.2 198.4 0l70.4-70.4c25.6-25.6 64-25.6 89.6 0s25.6 64 0 89.6l-70.4 70.4c-44.8 51.2-108.8 76.8-179.2 76.8z' fill='%238492A6'/%3E%3C/svg%3E");
@@ -100,13 +184,14 @@ a {
         background-repeat: no-repeat;
         padding-left: 20px;
         margin-left: auto;
+        font-weight: 500;
         &.ok {
           background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='10'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M12 2l-8 8-4-4 1.5-1.5L4 7 10.5.5 12 2z' fill='%233bd672'/%3E%3C/svg%3E");
           color: $primary-color;
         }
-        &.fail {
+        &.down {
           background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1064 1024' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M205.09 959.373l327.82-327.83 327.827 327.83L981.31 838.79 653.49 510.97l327.82-327.814L860.737 62.58 532.91 390.4 205.09 62.581 84.527 183.155l327.82 327.814-327.82 327.82z' fill='%23DE484A'/%3E%3C/svg%3E");
-          color: #de484a;
+          color: $error-color;
         }
         &.unknow {
           background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1024 1024' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M521.216 164.864c161.792 0 199.68 149.504 106.496 242.688C523.264 512 441.344 532.48 441.344 749.568h158.72c1.024-123.904 62.464-182.272 125.952-239.616 58.368-53.248 120.832-99.328 120.832-206.848 0-171.008-159.744-292.864-325.632-292.864-187.392 0-344.064 132.096-344.064 316.416h158.72c0-92.16 92.16-161.792 185.344-161.792M441.344 855.04h158.72v158.72h-158.72V855.04z' fill='%23969ea8'/%3E%3C/svg%3E");
@@ -114,6 +199,56 @@ a {
         }
       }
     }
+
+    /* 标签 */
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+      margin-bottom: 10px;
+
+      .tag {
+        display: inline-block;
+        padding: 3px 10px;
+        background: $bg-light;
+        color: #6b7280;
+        font-size: 12px;
+        border-radius: 12px;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background: #e5e7eb;
+          color: #374151;
+        }
+      }
+    }
+
+    /* 监控详情元信息 */
+    .monitor-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin: 12px 0;
+      font-size: 12px;
+      color: $text-secondary;
+
+      .meta-item {
+        display: inline-flex;
+        align-items: center;
+      }
+
+      .meta-label {
+        color: #9ca3af;
+        margin-right: 4px;
+      }
+
+      .meta-value {
+        color: #4b5563;
+        font-weight: 500;
+      }
+    }
+
     .timeline {
       display: flex;
       justify-content: space-between;
@@ -128,7 +263,7 @@ a {
           background-color: $primary-color;
         }
         &.down {
-          background-color: #de484a;
+          background-color: $error-color;
         }
         &.none {
           background-color: #e5e8eb;
@@ -143,21 +278,156 @@ a {
           margin-right: 0;
         }
       }
+      .no-data {
+        text-align: center;
+        color: $text-secondary;
+        padding: 20px 0;
+        font-size: 13px;
+      }
     }
+
     .summary {
       display: flex;
       justify-content: space-between;
       font-size: 13px;
       line-height: 15px;
-      color: #9aa2af;
+      color: $text-secondary;
     }
+
     .tooltip {
       padding: 6px 9px !important;
       border-radius: 5px !important;
     }
   }
+
   .site:last-child {
     border-bottom: none;
+  }
+
+  /* 错误站点样式 */
+  .error-site {
+    text-align: center;
+    padding: 40px 0;
+
+    .error-box {
+      .error-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+      }
+      h3 {
+        font-size: 18px;
+        color: #1f2937;
+        margin-bottom: 8px;
+      }
+      .error-message {
+        color: #6b7280;
+        margin-bottom: 20px;
+        font-size: 14px;
+      }
+      .retry-btn {
+        padding: 8px 20px;
+        border: 1px solid $primary-color;
+        border-radius: 6px;
+        background: #fff;
+        color: $primary-color;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover:not(:disabled) {
+          background: $primary-color;
+          color: #fff;
+        }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      }
+    }
+  }
+
+  /* 空数据样式 */
+  .empty-site {
+    text-align: center;
+    padding: 40px 0;
+
+    .empty-box {
+      .empty-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+      }
+      h3 {
+        font-size: 18px;
+        color: #1f2937;
+        margin-bottom: 8px;
+      }
+      p {
+        color: #6b7280;
+        font-size: 14px;
+      }
+    }
+  }
+}
+
+/* 全局错误容器样式 */
+.error-container {
+  text-align: center;
+  padding: 60px 40px;
+
+  .error-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+  }
+
+  h2 {
+    font-size: 24px;
+    color: #1f2937;
+    margin-bottom: 12px;
+  }
+
+  > p {
+    color: #6b7280;
+    margin-bottom: 24px;
+    font-size: 15px;
+  }
+
+  .error-details {
+    text-align: left;
+    max-width: 500px;
+    margin: 0 auto;
+    background: $bg-light;
+    padding: 20px 24px;
+    border-radius: 8px;
+
+    p {
+      margin-bottom: 12px;
+      color: #374151;
+    }
+
+    ol {
+      padding-left: 20px;
+      margin-bottom: 16px;
+
+      li {
+        margin-bottom: 10px;
+        color: #4b5563;
+        line-height: 1.6;
+      }
+    }
+
+    .hint {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #e5e7eb;
+      color: $text-secondary;
+      font-size: 13px;
+
+      a {
+        color: $primary-color;
+        font-weight: 500;
+      }
+    }
   }
 }
 
@@ -166,8 +436,49 @@ a {
   text-align: center;
   line-height: 25px;
   color: #969ea8;
+  padding-bottom: 30px;
   a {
     font-weight: bold;
     color: $primary-color;
+  }
+}
+
+/* 响应式 */
+@media (max-width: 640px) {
+  #uptime {
+    .site {
+      margin: 0 15px;
+      padding: 20px 0;
+    }
+
+    .status-bar {
+      flex-direction: column;
+      gap: 12px;
+      padding: 12px 15px;
+
+      .status-info {
+        flex-wrap: wrap;
+        gap: 12px;
+        justify-content: center;
+      }
+    }
+  }
+
+  #header {
+    .container {
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .navi {
+      a {
+        margin: 0 10px;
+      }
+    }
+  }
+
+  .monitor-meta {
+    gap: 10px !important;
   }
 }
