@@ -44,24 +44,81 @@ code {
   padding: 30px 0 60px 0;
   color: $primary-color;
   width: 100%;
+  position: relative;
+  overflow: hidden;
+
+  // 动态背景光晕
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -10%;
+    width: 120%;
+    height: 200%;
+    background: radial-gradient(ellipse at 30% 50%, rgba(59, 214, 114, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 50%, rgba(59, 214, 114, 0.08) 0%, transparent 50%);
+    animation: headerGlow 8s ease-in-out infinite alternate;
+    pointer-events: none;
+  }
+
+  // 底部渐变装饰线
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent 0%, $primary-color 20%, $primary-color 80%, transparent 100%);
+    opacity: 0.6;
+  }
+
   .container {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
+    position: relative;
+    z-index: 1;
   }
   .logo {
     font-size: 20px;
     font-weight: bold;
+    position: relative;
+    display: inline-block;
+
+    // Logo文字渐变动画
+    background: linear-gradient(90deg, $primary-color, #6ee7b7, $primary-color);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: logoShimmer 4s ease-in-out infinite;
   }
   .navi {
     font-size: 14px;
     color: #ffffff;
     a {
       margin-left: 20px;
-      transition: color ease 150ms;
+      transition: all ease 200ms;
+      position: relative;
+
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: -4px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: $primary-color;
+        transition: width ease 200ms;
+      }
     }
     a:hover {
       color: $primary-color;
+
+      &::after {
+        width: 100%;
+      }
     }
   }
 }
@@ -326,6 +383,55 @@ code {
           opacity: 1;
         }
       }
+
+      // 行内标签
+      .tags-inline {
+        display: flex;
+        align-items: center;
+        margin-right: 6px;
+
+        .tag-inline {
+          font-size: 14px;
+          font-weight: 600;
+          color: $primary-color;
+          background: none;
+          padding: 0;
+          margin-right: 0;
+
+          &:hover {
+            background: none;
+            color: $primary-color;
+          }
+        }
+
+        .tag-separator {
+          color: #d1d5db;
+          margin: 0 6px;
+          font-weight: 400;
+        }
+      }
+
+      // 监控类型/间隔徽章
+      .monitor-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 10px;
+        margin-left: 10px;
+        background: $bg-light;
+        color: #6b7280;
+        font-size: 12px;
+        font-weight: 500;
+        border-radius: 20px;
+        cursor: help;
+        transition: all 0.2s ease;
+        font-family: 'SFMono-Regular', Consolas, monospace;
+
+        &:hover {
+          background: #e5e7eb;
+          color: #374151;
+          transform: translateY(-1px);
+        }
+      }
       .status {
         background-position: left center;
         background-size: 14px auto;
@@ -345,55 +451,6 @@ code {
           background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1024 1024' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M521.216 164.864c161.792 0 199.68 149.504 106.496 242.688C523.264 512 441.344 532.48 441.344 749.568h158.72c1.024-123.904 62.464-182.272 125.952-239.616 58.368-53.248 120.832-99.328 120.832-206.848 0-171.008-159.744-292.864-325.632-292.864-187.392 0-344.064 132.096-344.064 316.416h158.72c0-92.16 92.16-161.792 185.344-161.792M441.344 855.04h158.72v158.72h-158.72V855.04z' fill='%23969ea8'/%3E%3C/svg%3E");
           color: #969ea8;
         }
-      }
-    }
-
-    /* 标签 */
-    .tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 10px;
-      margin-bottom: 10px;
-
-      .tag {
-        display: inline-block;
-        padding: 3px 10px;
-        background: $bg-light;
-        color: #6b7280;
-        font-size: 12px;
-        border-radius: 12px;
-        transition: all 0.2s ease;
-
-        &:hover {
-          background: #e5e7eb;
-          color: #374151;
-        }
-      }
-    }
-
-    /* 监控详情元信息 */
-    .monitor-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
-      margin: 12px 0;
-      font-size: 12px;
-      color: $text-secondary;
-
-      .meta-item {
-        display: inline-flex;
-        align-items: center;
-      }
-
-      .meta-label {
-        color: #9ca3af;
-        margin-right: 4px;
-      }
-
-      .meta-value {
-        color: #4b5563;
-        font-weight: 500;
       }
     }
 
@@ -636,8 +693,14 @@ code {
     }
   }
 
-  .monitor-meta {
-    gap: 10px !important;
+  .monitor-badge {
+    font-size: 11px !important;
+    padding: 2px 8px !important;
+    margin-left: 6px !important;
+  }
+
+  .tags-inline .tag-inline {
+    font-size: 13px !important;
   }
 }
 
@@ -691,5 +754,68 @@ code {
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+// Header 光晕呼吸动画
+@keyframes headerGlow {
+  0% {
+    transform: translateX(-5%) scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateX(5%) scale(1.1);
+    opacity: 1;
+  }
+}
+
+// Logo 文字渐变闪烁
+@keyframes logoShimmer {
+  0% {
+    background-position: 200% center;
+  }
+  100% {
+    background-position: -200% center;
+  }
+}
+
+// Tooltip 详情样式
+.tooltip {
+  &.tooltip {
+    padding: 0 !important;
+    max-width: 280px !important;
+  }
+
+  .tooltip-detail {
+    padding: 10px 12px;
+
+    .tooltip-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 0;
+      font-size: 12px;
+
+      &:not(:last-child) {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+    }
+
+    .tooltip-label {
+      color: #9ca3af;
+    }
+
+    .tooltip-value {
+      color: #fff;
+      font-weight: 500;
+    }
+
+    .tooltip-desc {
+      padding: 8px 0;
+      font-size: 12px;
+      color: #d1d5db;
+      line-height: 1.5;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
   }
 }

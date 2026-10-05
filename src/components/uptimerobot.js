@@ -27,6 +27,32 @@ function getNextCheckText(currentStateDuration, intervalSeconds) {
   return `${h} 小时 ${m} 分后`;
 }
 
+// 生成监控详情的大白话描述（用于tooltip）
+function getMonitorTooltip(site, checkInterval) {
+  const type = site.type || 'HTTP';
+  const intervalMin = site.interval ? Math.floor(site.interval / 60) : checkInterval;
+  const stateDuration = site.currentStateDuration ? formatDuration(site.currentStateDuration) : '未知';
+  const nextCheck = getNextCheckText(site.currentStateDuration, site.interval || checkInterval * 60);
+
+  const typeDesc = {
+    'HTTP': '通过 HTTP 请求检测网站是否可访问',
+    'HTTPS': '通过 HTTPS 请求检测网站是否可访问',
+    'PING': '通过 Ping 检测服务器是否在线',
+    'PORT': '检测端口是否开放',
+    'KEYWORD': '检测页面是否包含指定关键词',
+  };
+
+  return `
+    <div class="tooltip-detail">
+      <div class="tooltip-row"><span class="tooltip-label">监控类型：</span><span class="tooltip-value">${type}</span></div>
+      <div class="tooltip-desc">${typeDesc[type] || '监控站点可用性'}</div>
+      <div class="tooltip-row"><span class="tooltip-label">检测间隔：</span><span class="tooltip-value">每 ${intervalMin} 分钟检测一次</span></div>
+      <div class="tooltip-row"><span class="tooltip-label">状态持续：</span><span class="tooltip-value">已经${site.status === 'ok' ? '正常运行' : '出现故障'} ${stateDuration}</span></div>
+      <div class="tooltip-row"><span class="tooltip-label">下次检测：</span><span class="tooltip-value">${nextCheck}进行下一次检测</span></div>
+    </div>
+  `;
+}
+
 function UptimeRobot({ apikey, onRefresh, isFirst }) {
 
   const statusText = {
@@ -45,9 +71,7 @@ function UptimeRobot({ apikey, onRefresh, isFirst }) {
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [, setTick] = useState(0); // 用于触发重新渲染（倒计时更新）
-  const [autoRefresh, setAutoRefresh] = useState(true); // 自动刷新开关
   const tickTimerRef = useRef(null);
-  const autoRefreshTimerRef = useRef(null);
 
   // 刷新数据
   const fetchData = useCallback(async () => {
@@ -82,9 +106,9 @@ function UptimeRobot({ apikey, onRefresh, isFirst }) {
     return min === Infinity ? null : min;
   }, [monitors, CheckInterval]);
 
-  // 每秒更新倒计时 + 自动刷新检测
+  // 每秒更新倒计时 + 自动刷新检测（纯JS定时器）
   useEffect(() => {
-    if (!monitors || !autoRefresh) return;
+    if (!monitors) return;
 
     let secondsPassed = 0;
     tickTimerRef.current = setInterval(() => {
@@ -108,16 +132,7 @@ function UptimeRobot({ apikey, onRefresh, isFirst }) {
         clearInterval(tickTimerRef.current);
       }
     };
-  }, [monitors, autoRefresh, getMinNextCheckSeconds, fetchData]);
-
-  // 清理自动刷新定时器
-  useEffect(() => {
-    return () => {
-      if (autoRefreshTimerRef.current) {
-        clearTimeout(autoRefreshTimerRef.current);
-      }
-    };
-  }, []);
+  }, [monitors, getMinNextCheckSeconds, fetchData]);
 
   // 计算整体的下次检测时间（取所有监控中最早的）
   const getNextCheckTextGlobal = () => {
@@ -219,14 +234,6 @@ function UptimeRobot({ apikey, onRefresh, isFirst }) {
           </div>
 
           <div className="status-actions">
-            <button
-              className={`auto-refresh-btn ${autoRefresh ? 'active' : ''}`}
-              onClick={() => setAutoRefresh(!autoRefresh)}
-              title={autoRefresh ? '关闭自动刷新' : '开启自动刷新'}
-            >
-              <span className="auto-icon">{autoRefresh ? '🔄' : '⏸️'}</span>
-              <span className="auto-text">{autoRefresh ? '自动' : '手动'}</span>
-            </button>
             <button className="refresh-btn" onClick={fetchData} disabled={loading} title="刷新数据">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={loading ? 'spin' : ''}>
                 <path d="M23 4v6h-6" />
@@ -242,39 +249,29 @@ function UptimeRobot({ apikey, onRefresh, isFirst }) {
         <div key={site.id} className="site">
           <div className="meta">
             <div className="name-row">
+              {/* 标签 */}
+              {site.tags && site.tags.length > 0 && (
+                <div className="tags-inline">
+                  {site.tags.map((tag, idx) => (
+                    <span key={idx} className="tag tag-inline">{tag}</span>
+                  ))}
+                  <span className="tag-separator">|</span>
+                </div>
+              )}
+              {/* 名称 */}
               <span className="name" dangerouslySetInnerHTML={{ __html: site.name }} />
+              {/* 类型/间隔徽章 - 悬浮显示详情 */}
+              <span
+                className="monitor-badge"
+                data-tip={getMonitorTooltip(site, CheckInterval)}
+                data-html={true}
+              >
+                {site.type || 'HTTP'} / {site.interval ? Math.floor(site.interval / 60) : CheckInterval}m
+              </span>
+              {/* 外链 */}
               {ShowLink && site.url && <Link className="link" to={site.url} text={site.name} />}
             </div>
             <span className={'status ' + site.status}>{statusText[site.status]}</span>
-          </div>
-
-          {/* 标签显示 */}
-          {site.tags && site.tags.length > 0 && (
-            <div className="tags">
-              {site.tags.map((tag, idx) => (
-                <span key={idx} className="tag">{tag}</span>
-              ))}
-            </div>
-          )}
-
-          {/* 监控详情 */}
-          <div className="monitor-meta">
-            <span className="meta-item">
-              <span className="meta-label">类型：</span>
-              <span className="meta-value">{site.type || 'HTTP'}</span>
-            </span>
-            <span className="meta-item">
-              <span className="meta-label">间隔：</span>
-              <span className="meta-value">{site.interval ? Math.floor(site.interval / 60) : CheckInterval} 分钟</span>
-            </span>
-            <span className="meta-item">
-              <span className="meta-label">状态持续：</span>
-              <span className="meta-value">{site.currentStateDuration ? formatDuration(site.currentStateDuration) : '未知'}</span>
-            </span>
-            <span className="meta-item">
-              <span className="meta-label">下次检测：</span>
-              <span className="meta-value">{getNextCheckText(site.currentStateDuration, site.interval || CheckInterval * 60)}</span>
-            </span>
           </div>
 
           <div className="timeline">
