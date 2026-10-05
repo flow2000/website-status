@@ -86,6 +86,18 @@ function UptimeRobot({ isFirst }) {
   const [countdown, setCountdown] = useState(CheckInterval * 60); // 倒计时秒数
   const countdownTimerRef = useRef(null);
 
+  // 计算所有监控中最早的下次检测秒数
+  const getMinNextCheckSeconds = useCallback(() => {
+    if (!monitors || monitors.length === 0) return CheckInterval * 60;
+    let min = Infinity;
+    monitors.forEach((m) => {
+      const secs = getNextCheckSeconds(m.currentStateDuration, m.interval || CheckInterval * 60);
+      if (secs !== null && secs < min) min = secs;
+    });
+    // 至少留5秒缓冲，避免立即刷新
+    return min === Infinity ? CheckInterval * 60 : Math.max(Math.ceil(min), 5);
+  }, [monitors, CheckInterval]);
+
   // 刷新数据
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -93,15 +105,20 @@ function UptimeRobot({ isFirst }) {
     try {
       const data = await GetMonitors(CountDays);
       setMonitors(data);
-      // 刷新后重置倒计时
-      setCountdown(CheckInterval * 60);
     } catch (err) {
       setError(err.message || '加载失败');
       setMonitors(null);
     } finally {
       setLoading(false);
     }
-  }, [CountDays, CheckInterval]);
+  }, [CountDays]);
+
+  // 数据加载完成后，根据最早的下次检测时间设置倒计时
+  useEffect(() => {
+    if (!loading && !error && monitors) {
+      setCountdown(getMinNextCheckSeconds());
+    }
+  }, [loading, error, monitors, getMinNextCheckSeconds]);
 
   // 初始加载
   useEffect(() => {
@@ -110,14 +127,14 @@ function UptimeRobot({ isFirst }) {
 
   // 倒计时定时器：每秒递减，到0自动刷新
   useEffect(() => {
-    if (loading || error) return;
+    if (loading || error || !monitors) return;
 
     countdownTimerRef.current = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
-          // 倒计时结束，触发刷新
+          // 倒计时结束，触发刷新（刷新后 useEffect 会重新设置倒计时）
           fetchData();
-          return CheckInterval * 60;
+          return 0;
         }
         return prev - 1;
       });
@@ -128,7 +145,7 @@ function UptimeRobot({ isFirst }) {
         clearInterval(countdownTimerRef.current);
       }
     };
-  }, [loading, error, fetchData, CheckInterval]);
+  }, [loading, error, monitors, fetchData]);
 
   // 计算正常/异常监控数量
   const getStatusCounts = () => {

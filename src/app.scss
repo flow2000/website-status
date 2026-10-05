@@ -41,11 +41,15 @@ code {
 
 #header {
   background-color: #121a26;
-  padding: 30px 0 60px 0;
+  padding: 40px 0 80px 0;
   color: $primary-color;
   width: 100%;
   position: relative;
   overflow: hidden;
+
+  .logo {
+    font-size: 22px;
+  }
 
   // 动态背景光晕
   &::before {
@@ -125,11 +129,11 @@ code {
 
 #uptime {
   background-color: #ffffff;
-  border-radius: 10px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  margin-top: -30px;
-  margin-bottom: 40px;
-  padding: 15px 0;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+  margin-top: -40px;
+  margin-bottom: 50px;
+  padding: 0;
   overflow: hidden;
 
   /* 状态栏 */
@@ -353,8 +357,12 @@ code {
 
   .site {
     border-bottom: 1px solid $border-color;
-    margin: 0 30px;
-    padding: 25px 0;
+    margin: 0 35px;
+    padding: 28px 0;
+
+    &:last-child {
+      border-bottom: none;
+    }
 
     .loading {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50'%3E%3Cpath fill='%23D6D8D8' d='M19.52 42.712c9.897 2.916 20.285-2.743 23.201-12.64l-3.902-1.15c-2.281 7.742-10.407 12.17-18.15 9.888l-1.15 3.902z'%3E%3CanimateTransform attributeType='xml' attributeName='transform' type='rotate' from='0 25 25' to='360 25 25' dur='0.6s' repeatCount='indefinite'/%3E%3C/path%3E%3C/svg%3E");
@@ -466,13 +474,19 @@ code {
     .timeline {
       display: flex;
       justify-content: space-between;
-      margin: 15px 0 10px 0;
+      margin: 20px 0 14px 0;
       i {
         flex-grow: 1;
         margin: 0 1px;
-        height: 25px;
-        border-radius: 5px;
-        transition: opacity ease 150ms;
+        height: 30px;
+        border-radius: 4px;
+        transition: transform ease 150ms, opacity ease 150ms;
+        cursor: pointer;
+
+        &:hover {
+          transform: scaleY(1.15);
+        }
+
         &.ok {
           background-color: $primary-color;
         }
