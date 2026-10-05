@@ -42,13 +42,19 @@ async function fetchMonitorsV3(client) {
     if (cursor) params.cursor = cursor;
 
     const response = await client.get('/monitors', { params });
-    const data = response.data;
+    const responseData = response.data;
 
-    if (data.items && Array.isArray(data.items)) {
-      allMonitors.push(...data.items);
+    // V3 API 返回格式: { data: [...] } 或 { items: [...] }
+    const items = responseData.data || responseData.items || [];
+    if (Array.isArray(items)) {
+      allMonitors.push(...items);
     }
 
-    cursor = data.pagination?.nextCursor || null;
+    // 分页游标
+    cursor = responseData.pagination?.nextCursor
+      || responseData.pagination?.cursor
+      || responseData.nextCursor
+      || null;
   } while (cursor);
 
   return allMonitors;
@@ -167,12 +173,15 @@ export async function GetMonitors(apikey, days) {
         ? uptimeData.status
         : STATUS_MAP_V3[monitor.status] || 'unknow';
 
-      // 获取 lastCheck 时间
+      // 获取 lastCheck 时间（V3 API 可能不直接提供，用 currentStateDuration 估算状态变化时间）
       let lastCheck = null;
       if (monitor.lastCheckAt) {
         lastCheck = dayjs(monitor.lastCheckAt);
       } else if (monitor.lastCheck) {
         lastCheck = dayjs(monitor.lastCheck);
+      } else if (monitor.currentStateDuration) {
+        // 用当前状态持续时间估算上次状态变化时间
+        lastCheck = dayjs().subtract(monitor.currentStateDuration, 'second');
       }
 
       return {
@@ -187,6 +196,7 @@ export async function GetMonitors(apikey, days) {
         total: uptimeData.total,
         status: status,
         lastCheck: lastCheck,
+        currentStateDuration: monitor.currentStateDuration || 0,
         createDateTime: monitor.createDateTime || null,
       };
     });

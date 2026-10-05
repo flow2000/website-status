@@ -1,8 +1,27 @@
 import ReactTooltip from 'react-tooltip';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { GetMonitors } from '../common/uptimerobot';
-import { formatDuration, formatNumber, formatRelativeTime, formatNextCheck } from '../common/helper';
+import { formatDuration, formatNumber, formatRelativeTime } from '../common/helper';
 import Link from './link';
+
+// 估算下次检测时间（基于当前状态持续时间和监控间隔）
+function getNextCheckText(currentStateDuration, intervalSeconds) {
+  if (!intervalSeconds) return '未知';
+  const elapsed = currentStateDuration || 0;
+  const sinceLastCheck = elapsed % intervalSeconds;
+  const secondsUntilNext = intervalSeconds - sinceLastCheck;
+
+  if (secondsUntilNext <= 0) return '即将检测';
+  if (secondsUntilNext < 60) return `${secondsUntilNext} 秒后`;
+  if (secondsUntilNext < 3600) {
+    const m = Math.floor(secondsUntilNext / 60);
+    const s = secondsUntilNext % 60;
+    return `${m} 分 ${s} 秒后`;
+  }
+  const h = Math.floor(secondsUntilNext / 3600);
+  const m = Math.floor((secondsUntilNext % 3600) / 60);
+  return `${h} 小时 ${m} 分后`;
+}
 
 function UptimeRobot({ apikey, onRefresh, isFirst }) {
 
@@ -12,7 +31,10 @@ function UptimeRobot({ apikey, onRefresh, isFirst }) {
     unknow: '未知'
   };
 
-  const { CountDays, ShowLink, CheckInterval } = window.Config;
+  const config = window.Config || {};
+  const CountDays = config.CountDays || 90;
+  const ShowLink = config.ShowLink !== false;
+  const CheckInterval = config.CheckInterval || 5;
 
   const [monitors, setMonitors] = useState(null);
   const [error, setError] = useState(null);
@@ -57,34 +79,30 @@ function UptimeRobot({ apikey, onRefresh, isFirst }) {
   }, []);
 
   // 计算整体的下次检测时间（取所有监控中最早的）
-  const getNextCheckText = () => {
+  const getNextCheckTextGlobal = () => {
     if (!monitors || monitors.length === 0) return '未知';
-    let earliestNext = null;
-    let earliestInterval = CheckInterval * 60; // 默认5分钟
+    let minSecondsUntilNext = Infinity;
 
     monitors.forEach((m) => {
-      if (m.lastCheck && m.interval) {
-        const nextCheck = m.lastCheck.valueOf() + m.interval * 1000;
-        if (!earliestNext || nextCheck < earliestNext) {
-          earliestNext = nextCheck;
-          earliestInterval = m.interval;
-        }
+      const interval = m.interval || CheckInterval * 60;
+      const stateDuration = m.currentStateDuration || 0;
+      const sinceLastCheck = stateDuration % interval;
+      const secondsUntilNext = interval - sinceLastCheck;
+      if (secondsUntilNext < minSecondsUntilNext) {
+        minSecondsUntilNext = secondsUntilNext;
       }
     });
 
-    if (!earliestNext) return '未知';
-    const now = Date.now();
-    const diffSeconds = Math.floor((earliestNext - now) / 1000);
-
-    if (diffSeconds <= 0) return '即将检测';
-    if (diffSeconds < 60) return `${diffSeconds} 秒后`;
-    if (diffSeconds < 3600) {
-      const m = Math.floor(diffSeconds / 60);
-      const s = diffSeconds % 60;
+    if (minSecondsUntilNext === Infinity) return '未知';
+    if (minSecondsUntilNext <= 0) return '即将检测';
+    if (minSecondsUntilNext < 60) return `${minSecondsUntilNext} 秒后`;
+    if (minSecondsUntilNext < 3600) {
+      const m = Math.floor(minSecondsUntilNext / 60);
+      const s = minSecondsUntilNext % 60;
       return `${m} 分 ${s} 秒后`;
     }
-    const h = Math.floor(diffSeconds / 3600);
-    const m = Math.floor((diffSeconds % 3600) / 60);
+    const h = Math.floor(minSecondsUntilNext / 3600);
+    const m = Math.floor((minSecondsUntilNext % 3600) / 60);
     return `${h} 小时 ${m} 分后`;
   };
 
@@ -137,9 +155,9 @@ function UptimeRobot({ apikey, onRefresh, isFirst }) {
               <span className="status-value">{lastUpdate ? formatRelativeTime(lastUpdate) : '未知'}</span>
             </span>
             <span className="status-item">
-              <span className="status-label">下次检测：</span>
-              <span className="status-value">{getNextCheckText()}</span>
-            </span>
+                <span className="status-label">下次检测：</span>
+                <span className="status-value">{getNextCheckTextGlobal()}</span>
+              </span>
           </div>
           <button className="refresh-btn" onClick={fetchData} disabled={loading} title="刷新数据">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -181,12 +199,12 @@ function UptimeRobot({ apikey, onRefresh, isFirst }) {
               <span className="meta-value">{site.interval ? Math.floor(site.interval / 60) : CheckInterval} 分钟</span>
             </span>
             <span className="meta-item">
-              <span className="meta-label">上次检测：</span>
-              <span className="meta-value">{site.lastCheck ? formatRelativeTime(site.lastCheck) : '未知'}</span>
+              <span className="meta-label">状态持续：</span>
+              <span className="meta-value">{site.currentStateDuration ? formatDuration(site.currentStateDuration) : '未知'}</span>
             </span>
             <span className="meta-item">
               <span className="meta-label">下次检测：</span>
-              <span className="meta-value">{formatNextCheck(site.lastCheck, site.interval || CheckInterval * 60)}</span>
+              <span className="meta-value">{getNextCheckText(site.currentStateDuration, site.interval || CheckInterval * 60)}</span>
             </span>
           </div>
 
