@@ -40,88 +40,230 @@ code {
 }
 
 #header {
-  background-color: #121a26;
-  padding: 40px 0 80px 0;
-  color: $primary-color;
   width: 100%;
   position: relative;
   overflow: hidden;
+  padding: 30px 0 140px 0;
+  color: #fff;
+  transition: background 0.8s ease;
 
-  .logo {
-    font-size: 22px;
+  // 默认/全部正常 - 绿色系
+  &.banner-level-0 {
+    background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+  }
+  // 轻微故障 - 黄绿
+  &.banner-level-1 {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%);
+  }
+  // 中等故障 - 橙红
+  &.banner-level-2 {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 50%, #c2410c 100%);
+  }
+  // 严重故障 - 红色
+  &.banner-level-3 {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%);
   }
 
-  // 动态背景光晕
-  &::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -10%;
-    width: 120%;
-    height: 200%;
-    background: radial-gradient(ellipse at 30% 50%, rgba(59, 214, 114, 0.15) 0%, transparent 50%),
-                radial-gradient(ellipse at 70% 50%, rgba(59, 214, 114, 0.08) 0%, transparent 50%);
-    animation: headerGlow 8s ease-in-out infinite alternate;
-    pointer-events: none;
-  }
-
-  // 底部渐变装饰线
-  &::after {
-    content: '';
+  // 水波纹容器
+  .wave-container {
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent 0%, $primary-color 20%, $primary-color 80%, transparent 100%);
-    opacity: 0.6;
-  }
+    height: 120px;
+    pointer-events: none;
 
-  .container {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    position: relative;
-    z-index: 1;
-  }
-  .logo {
-    font-size: 20px;
-    font-weight: bold;
-    position: relative;
-    display: inline-block;
+    .wave {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 200%;
+      height: 100%;
 
-    // Logo文字渐变动画
-    background: linear-gradient(90deg, $primary-color, #6ee7b7, $primary-color);
-    background-size: 200% 100%;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: logoShimmer 4s ease-in-out infinite;
-  }
-  .navi {
-    font-size: 14px;
-    color: #ffffff;
-    a {
-      margin-left: 20px;
-      transition: all ease 200ms;
-      position: relative;
-
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: -4px;
-        left: 0;
-        width: 0;
-        height: 2px;
-        background: $primary-color;
-        transition: width ease 200ms;
+      path {
+        fill: rgba(255, 255, 255, 0.15);
       }
     }
-    a:hover {
-      color: $primary-color;
 
-      &::after {
-        width: 100%;
+    .wave1 {
+      animation: waveMove1 10s linear infinite;
+      path { fill: rgba(255, 255, 255, 0.12); }
+    }
+    .wave2 {
+      animation: waveMove2 14s linear infinite;
+      path { fill: rgba(255, 255, 255, 0.2); }
+    }
+    .wave3 {
+      animation: waveMove3 18s linear infinite;
+      path { fill: rgba(255, 255, 255, 0.3); }
+    }
+  }
+
+  // 顶部导航
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    z-index: 2;
+
+    .logo {
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      margin: 0;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+    .navi {
+      font-size: 14px;
+      a {
+        color: rgba(255, 255, 255, 0.85);
+        margin-left: 24px;
+        transition: all ease 200ms;
+        position: relative;
+        &::after {
+          content: '';
+          position: absolute;
+          bottom: -4px;
+          left: 0;
+          width: 0;
+          height: 2px;
+          background: #fff;
+          transition: width ease 200ms;
+        }
+      }
+      a:hover {
+        color: #fff;
+        &::after { width: 100%; }
+      }
+    }
+  }
+
+  // Banner 主内容
+  .banner-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 50px;
+    position: relative;
+    z-index: 2;
+
+    .banner-status {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+
+      .status-dot {
+        position: relative;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        &.level-0 { background: rgba(255, 255, 255, 0.3); }
+        &.level-1 { background: rgba(255, 255, 255, 0.3); }
+        &.level-2 { background: rgba(255, 255, 255, 0.3); }
+        &.level-3 { background: rgba(255, 255, 255, 0.3); }
+
+        &::before {
+          content: '';
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          background: #fff;
+          box-shadow: 0 0 20px rgba(255, 255, 255, 0.6);
+        }
+
+        .status-ring {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 50px;
+          height: 50px;
+          border-radius: 50%;
+          border: 2px solid rgba(255, 255, 255, 0.4);
+          animation: pulseRing 2.5s ease-out infinite;
+          &.delay { animation-delay: 1.2s; }
+        }
+      }
+
+      .status-text {
+        .status-title {
+          font-size: 32px;
+          font-weight: 700;
+          color: #fff;
+          margin: 0 0 6px 0;
+          text-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+        }
+        .status-sub {
+          font-size: 14px;
+          color: rgba(255, 255, 255, 0.8);
+          margin: 0;
+        }
+      }
+    }
+
+    .banner-info {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      padding: 14px 22px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+
+      .info-item {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        font-size: 13px;
+
+        .info-label {
+          color: rgba(255, 255, 255, 0.7);
+        }
+        .info-value {
+          color: #fff;
+          font-weight: 600;
+          font-family: 'SFMono-Regular', Consolas, monospace;
+
+          &.countdown {
+            font-size: 15px;
+          }
+        }
+      }
+
+      .refresh-btn-banner {
+        width: 34px;
+        height: 34px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.15);
+        color: #fff;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+
+        &:hover:not(:disabled) {
+          background: rgba(255, 255, 255, 0.25);
+          transform: rotate(180deg);
+        }
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        svg {
+          &.spin {
+            animation: spin 1s linear infinite;
+          }
+        }
       }
     }
   }
@@ -136,223 +278,14 @@ code {
   padding: 0;
   overflow: hidden;
 
-  /* 状态栏 */
+  /* 无状态栏 - 顶部圆角 */
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  margin-top: -60px;
+
+  /* 状态栏 - 已移至Banner，保留占位以防后续需要 */
   .status-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 15px 30px;
-    border-bottom: 1px solid $border-color;
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-    position: relative;
-    overflow: hidden;
-    transition: all 0.3s ease;
-
-    /* 全部正常状态 - 绿色渐变边框 */
-    &.status-all-ok {
-      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #f0fdfa 100%);
-      border-bottom: 1px solid #bbf7d0;
-
-      &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, transparent, $primary-color, transparent);
-        animation: scanLine 3s ease-in-out infinite;
-      }
-    }
-
-    /* 有异常状态 - 红色渐变边框 */
-    &.status-has-down {
-      background: linear-gradient(135deg, #fef2f2 0%, #fff1f2 50%, #fff7ed 100%);
-      border-bottom: 1px solid #fecaca;
-
-      &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, transparent, $error-color, transparent);
-        animation: scanLine 2s ease-in-out infinite;
-      }
-    }
-
-    /* 脉冲指示器 */
-    .pulse-indicator {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      min-width: 110px;
-
-      .pulse-dot {
-        position: relative;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        display: inline-block;
-
-        &.pulse-ok {
-          background-color: $primary-color;
-          box-shadow: 0 0 8px rgba(59, 214, 114, 0.6);
-        }
-
-        &.pulse-down {
-          background-color: $error-color;
-          box-shadow: 0 0 8px rgba(222, 72, 74, 0.6);
-          animation: pulseBlink 1s ease-in-out infinite;
-        }
-
-        .pulse-ring {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          width: 100%;
-          height: 100%;
-          border-radius: 50%;
-          opacity: 0;
-          animation: pulseRing 2s ease-out infinite;
-
-          &.pulse-delay {
-            animation-delay: 1s;
-          }
-        }
-
-        &.pulse-ok .pulse-ring {
-          border: 2px solid $primary-color;
-        }
-
-        &.pulse-down .pulse-ring {
-          border: 2px solid $error-color;
-        }
-      }
-
-      .pulse-text {
-        font-size: 14px;
-        font-weight: 600;
-
-        .status-all-ok & {
-          color: #16a34a;
-        }
-
-        .status-has-down & {
-          color: #dc2626;
-        }
-      }
-    }
-
-    .status-info {
-      display: flex;
-      gap: 24px;
-      flex: 1;
-      justify-content: center;
-    }
-
-    .status-item {
-      font-size: 13px;
-    }
-
-    .status-label {
-      color: $text-secondary;
-      margin-right: 6px;
-    }
-
-    .status-value {
-      color: #131a26;
-      font-weight: 500;
-
-      &.countdown-value {
-        font-family: 'SFMono-Regular', Consolas, monospace;
-        font-weight: 600;
-        color: $primary-color;
-        min-width: 70px;
-        display: inline-block;
-        text-align: center;
-      }
-    }
-
-    .status-actions {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    /* 自动刷新按钮 */
-    .auto-refresh-btn {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 6px 12px;
-      border: 1px solid #d1d5db;
-      border-radius: 6px;
-      background: #fff;
-      color: #6b7280;
-      font-size: 12px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-
-      &:hover {
-        border-color: #9ca3af;
-        color: #374151;
-      }
-
-      &.active {
-        border-color: $primary-color;
-        background: rgba(59, 214, 114, 0.1);
-        color: $primary-color;
-
-        .auto-icon {
-          animation: spin 3s linear infinite;
-          display: inline-block;
-        }
-      }
-
-      .auto-icon {
-        font-size: 14px;
-      }
-    }
-
-    .refresh-btn {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 14px;
-      border: 1px solid #d1d5db;
-      border-radius: 6px;
-      background: #fff;
-      color: #374151;
-      font-size: 13px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-
-      &:hover:not(:disabled) {
-        background: #f9fafb;
-        border-color: $primary-color;
-        color: $primary-color;
-      }
-
-      &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-
-      svg {
-        transition: transform 0.3s ease;
-
-        &.spin {
-          animation: spin 1s linear infinite;
-        }
-      }
-
-      &:hover:not(:disabled) svg {
-        transform: rotate(180deg);
-      }
-    }
+    display: none;
   }
 
   .site {
@@ -679,39 +612,51 @@ code {
       padding: 20px 0;
     }
 
-    .status-bar {
-      flex-direction: column;
-      gap: 12px;
-      padding: 12px 15px;
-
-      .pulse-indicator {
-        min-width: auto;
-      }
-
-      .status-info {
-        flex-wrap: wrap;
-        gap: 12px;
-        justify-content: center;
-        flex: none;
-      }
-
-      .status-actions {
-        width: 100%;
-        justify-content: center;
-      }
-    }
+    /* 响应式 - 内容卡片上移调整 */
+    margin-top: -50px !important;
   }
 
   #header {
-    .container {
+    padding: 20px 0 120px 0;
+
+    .header-top {
       flex-direction: column;
       align-items: center;
-      gap: 15px;
+      gap: 12px;
     }
 
     .navi {
       a {
         margin: 0 10px;
+      }
+    }
+
+    .banner-content {
+      flex-direction: column;
+      gap: 20px;
+      align-items: flex-start;
+      margin-top: 30px;
+
+      .banner-status {
+        .status-dot {
+          width: 40px;
+          height: 40px;
+          &::before { width: 18px; height: 18px; }
+          .status-ring { width: 40px; height: 40px; }
+        }
+        .status-title {
+          font-size: 24px !important;
+        }
+      }
+
+      .banner-info {
+        width: 100%;
+        justify-content: space-between;
+        padding: 10px 16px;
+        gap: 16px;
+
+        .info-item { font-size: 12px; }
+        .info-value.countdown { font-size: 13px; }
       }
     }
   }
@@ -729,19 +674,18 @@ code {
 
 /* ============ 动画关键帧 ============ */
 
-// 扫描线动画
-@keyframes scanLine {
-  0% {
-    transform: translateX(-100%);
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    transform: translateX(100%);
-    opacity: 0;
-  }
+// 水波流动动画
+@keyframes waveMove1 {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes waveMove2 {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+@keyframes waveMove3 {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
 
 // 脉冲环动画
@@ -752,21 +696,9 @@ code {
     opacity: 0.6;
   }
   100% {
-    width: 400%;
-    height: 400%;
+    width: 200%;
+    height: 200%;
     opacity: 0;
-  }
-}
-
-// 脉冲闪烁（异常状态用）
-@keyframes pulseBlink {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.6;
-    transform: scale(1.1);
   }
 }
 
@@ -777,28 +709,6 @@ code {
   }
   to {
     transform: rotate(360deg);
-  }
-}
-
-// Header 光晕呼吸动画
-@keyframes headerGlow {
-  0% {
-    transform: translateX(-5%) scale(1);
-    opacity: 0.6;
-  }
-  100% {
-    transform: translateX(5%) scale(1.1);
-    opacity: 1;
-  }
-}
-
-// Logo 文字渐变闪烁
-@keyframes logoShimmer {
-  0% {
-    background-position: 200% center;
-  }
-  100% {
-    background-position: -200% center;
   }
 }
 

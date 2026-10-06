@@ -1,17 +1,22 @@
-import { useMemo, useEffect, useState } from 'react';
+import { useMemo, useEffect, useState, useCallback, useRef } from 'react';
 import Link from './link';
 import Header from './header';
 import UptimeRobot from './uptimerobot';
 import Package from '../../package.json';
+import { GetMonitors } from '../common/uptimerobot';
+
+// 估算下次检测时间
+function getNextCheckSeconds(currentStateDuration, intervalSeconds) {
+  if (!intervalSeconds) return null;
+  const elapsed = currentStateDuration || 0;
+  const sinceLastCheck = elapsed % intervalSeconds;
+  return intervalSeconds - sinceLastCheck;
+}
 
 function App() {
-  const [apiReady, setApiReady] = useState(null); // null=检查中, true=可用, false=不可用
-
-  // 获取配置（环境变量优先）
   const config = useMemo(() => {
     const windowConfig = window.Config || {};
 
-    // CountDays
     let countDays = 90;
     const envCountDays = process.env.REACT_APP_COUNT_DAYS;
     if (envCountDays && !isNaN(parseInt(envCountDays))) {
@@ -20,7 +25,6 @@ function App() {
       countDays = windowConfig.CountDays;
     }
 
-    // CheckInterval
     let checkInterval = 5;
     const envInterval = process.env.REACT_APP_CHECK_INTERVAL;
     if (envInterval && !isNaN(parseInt(envInterval))) {
@@ -29,7 +33,6 @@ function App() {
       checkInterval = windowConfig.CheckInterval;
     }
 
-    // ShowLink
     let showLink = true;
     if (typeof windowConfig.ShowLink === 'boolean') {
       showLink = windowConfig.ShowLink;
@@ -42,7 +45,14 @@ function App() {
     };
   }, []);
 
-  // 将配置注入到 window.Config 供子组件使用
+  const [monitors, setMonitors] = useState(null);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [countdown, setCountdown] = useState(config.checkInterval * 60);
+  const [apiReady, setApiReady] = useState(null);
+  const countdownTimerRef = useRef(null);
+
+  // 注入配置
   useEffect(() => {
     if (!window.Config) window.Config = {};
     window.Config.CountDays = config.countDays;
@@ -50,29 +60,84 @@ function App() {
     window.Config.ShowLink = config.showLink;
   }, [config]);
 
-  // 检查 API 是否可用
+  // 计算最早的下次检测秒数
+  const getMinNextCheckSeconds = useCallback(() => {
+    if (!monitors || monitors.length === 0) return config.checkInterval * 60;
+    let min = Infinity;
+    monitors.forEach((m) => {
+      const secs = getNextCheckSeconds(m.currentStateDuration, m.interval || config.checkInterval * 60);
+      if (secs !== null && secs < min) min = secs;
+    });
+    return min === Infinity ? config.checkInterval * 60 : Math.max(Math.ceil(min), 5);
+  }, [monitors, config.checkInterval]);
+
+  // 刷新数据
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await GetMonitors(config.countDays);
+      setMonitors(data);
+      setApiReady(true);
+    } catch (err) {
+      setError(err.message || '加载失败');
+      setMonitors(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [config.countDays]);
+
+  // 初始加载 + 检查 API
   useEffect(() => {
-    async function checkApi() {
+    async function init() {
       try {
         const response = await fetch('/api/monitors?days=1');
         if (response.status === 404) {
           setApiReady(false);
           return;
         }
-        // 只要不是 404，就认为 API 存在（即使返回错误也是配置问题，不是路径问题）
         setApiReady(true);
+        fetchData();
       } catch {
         setApiReady(false);
       }
     }
-    checkApi();
-  }, []);
+    init();
+  }, []); // eslint-disable-line
+
+  // 数据加载完成后设置倒计时
+  useEffect(() => {
+    if (!loading && !error && monitors) {
+      setCountdown(getMinNextCheckSeconds());
+    }
+  }, [loading, error, monitors, getMinNextCheckSeconds]);
+
+  // 倒计时定时器
+  useEffect(() => {
+    if (loading || error || !monitors) return;
+
+    countdownTimerRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          fetchData();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (countdownTimerRef.current) {
+        clearInterval(countdownTimerRef.current);
+      }
+    };
+  }, [loading, error, monitors, fetchData]);
 
   // 加载中
   if (apiReady === null) {
     return (
       <>
-        <Header />
+        <Header monitors={null} countdown={0} loading={true} />
         <div className="container">
           <div id="uptime">
             <div className="site">
@@ -88,11 +153,11 @@ function App() {
     );
   }
 
-  // API 不可用（本地开发环境或未配置服务端函数）
+  // API 不可用
   if (apiReady === false) {
     return (
       <>
-        <Header />
+        <Header monitors={null} countdown={0} loading={false} />
         <div className="container">
           <div id="uptime">
             <div className="error-container">
@@ -131,10 +196,15 @@ function App() {
 
   return (
     <>
-      <Header />
+      <Header
+        monitors={monitors}
+        countdown={countdown}
+        onRefresh={fetchData}
+        loading={loading}
+      />
       <div className="container">
         <div id="uptime">
-          <UptimeRobot isFirst={true} />
+          <UptimeRobot monitors={monitors} error={error} loading={loading} onRefresh={fetchData} />
         </div>
         <div id="footer">
           <p>基于 <Link to="https://uptimerobot.com/" text="UptimeRobot" /> 接口制作</p>
